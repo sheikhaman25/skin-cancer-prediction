@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Skin Cancer Detection</title>
+
+<link href = "{{ url_for ('static', filename = 'css/styles.css')}}"  rel = "stylesheet">
+<link rel = "stylesheet" href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+
+<body>
+
+<h1>Skin Cancer Detection & Severity Prediction</h1>
+
+<canvas id = "canvas" width="256" height="192"></canvas>
+
+<div>
+<form action = "/predict" method = "post" enctype = "multipart/form-data">
+
+<input type = "file" accept = "image/*" id = "file_upload" name = "image">
+<button type = "submit" class = "btn1"><i class="fa fa-camera fa-fw"></i>Predict</button>
+</form>
+</div>
+
+<h2>Result: {{result}} {{res_prob}}</h2>
+       
+</body>
+
+<script>
+// Function To Display Uploaded Image
+var canvas  = document.getElementById("canvas");
+var context = canvas.getContext("2d");
+
+function readImage() {
+    if ( this.files && this.files[0] ) {
+        var file_read= new FileReader();
+        file_read.onload = function(event) {
+           var img = new Image();
+           img.addEventListener("load", function() {
+             context.drawImage(img, 0,0, 256,192);
+           });
+           img.src = event.target.result;};
+           
+        file_read.readAsDataURL( this.files[0] );
+    }
+}
+
+document.getElementById("file_upload").addEventListener("change", readImage, false);
+</script> 
+
+</html>
+
