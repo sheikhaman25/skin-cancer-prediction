@@ -10,7 +10,8 @@ from keras.metrics import categorical_accuracy, top_k_categorical_accuracy, cate
 app = Flask(__name__)
 
 # Path To The Model
-model_path = 'skin_mnet_adam.h5'
+detect_model_path = 'skin_mnet_adam.h5'
+stage_model_path = 'stages_mnet_adam.h5'
 
 # Defining Top 2 & Top 3 Accuracy
 def top_2_accuracy(y_true, y_pred):
@@ -23,8 +24,12 @@ def top_3_accuracy(y_true, y_pred):
 custom_objects = {'top_2_accuracy': top_2_accuracy, 'top_3_accuracy': top_3_accuracy}
 
 # Loading Model
-model = model_load(model_path, custom_objects =  custom_objects)
+model = model_load(detect_model_path, custom_objects =  custom_objects)
 model._make_predict_function()
+
+stage_model = model_load(stage_model_path)
+stage_model._make_predict_function()
+
 print('Model Loaded. Ready To Go!')
 
 # Function To Preprocess Image
@@ -35,6 +40,7 @@ def prepare_image(img):
     prc_img = mobilenet.preprocess_input(img_array)
     return (prc_img)
 
+# Function To Convert To String
 def convert_result(inp):
     if inp == 0:
         return 'Actinic Keratoses'
@@ -50,7 +56,22 @@ def convert_result(inp):
         return 'Melanocytic Nevi '
     elif inp == 6:
         return 'Vascular Lesions '
-    
+
+# Function To Predict Severity
+def stage_check(inp, pro_img):
+    stage_pred = stage_model.predict(pro_img)
+    stage_res = np.argmax(stage_pred, axis = -1)
+    if stage_res == 0:
+        return 'Stage Zero'
+    elif stage_res == 1:
+        return 'Stage One'
+    elif stage_res == 2:
+        return 'Stage Two'
+    elif stage_res == 3:
+        return 'Stage Three'
+    elif stage_res == 4:
+        return 'Stage Four'        
+        
 # Function To Predict On Uploaded Image 
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
@@ -59,9 +80,15 @@ def predict():
         pro_img = prepare_image(file)
         predict = model.predict(pro_img)
         result = np.argmax(predict, axis = -1)
-        res_prob = predict[0,result]
+        #res_prob = predict[0,result]
+        
+        if result == 4:
+            stage_res = stage_check(result,pro_img)
+        else:
+            stage_res = 'Stage Classification Not Applicable'
+            
         result = convert_result(result)
-    return render_template('index.html', result = result, res_prob = res_prob)
+    return render_template('index.html', result = result, stg_res = stage_res)
 
 # Function To Load Main Page
 @app.route('/')
