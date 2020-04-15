@@ -10,6 +10,7 @@ from keras.metrics import categorical_accuracy, top_k_categorical_accuracy, cate
 app = Flask(__name__)
 
 # Path To The Model
+one_class_model_path = 'mnet_adam.h5'
 detect_model_path = 'skin_mnet_adam.h5'
 stage_model_path = 'stages_mnet_adam.h5'
 
@@ -24,8 +25,11 @@ def top_3_accuracy(y_true, y_pred):
 custom_objects = {'top_2_accuracy': top_2_accuracy, 'top_3_accuracy': top_3_accuracy}
 
 # Loading Model
-model = model_load(detect_model_path, custom_objects =  custom_objects)
-model._make_predict_function()
+one_class_model = model_load(one_class_model_path)
+one_class_model._make_predict_function()
+
+skin_model = model_load(detect_model_path, custom_objects =  custom_objects)
+skin_model._make_predict_function()
 
 stage_model = model_load(stage_model_path)
 stage_model._make_predict_function()
@@ -71,6 +75,21 @@ def stage_check(inp, pro_img):
         return 'Stage Three'
     elif stage_res == 4:
         return 'Stage Four'        
+
+# Function To Predict On Correct Image
+def correct_predict(pro_img):
+    predict = skin_model.predict(pro_img)
+    result = np.argmax(predict, axis = -1)
+    res_prob = predict[0,result]
+        
+    if result == 4:
+        stage_res = stage_check(result,pro_img)
+    else:
+        stage_res = 'Stage Classification Not Applicable'
+            
+    result = convert_result(result)
+    
+    return result,res_prob,stage_res
         
 # Function To Predict On Uploaded Image 
 @app.route('/predict', methods=['GET', 'POST'])
@@ -78,17 +97,23 @@ def predict():
     if request.method == 'POST':
         file = request.files['image']
         pro_img = prepare_image(file)
-        predict = model.predict(pro_img)
-        result = np.argmax(predict, axis = -1)
-        #res_prob = predict[0,result]
+        class_pred = one_class_model.predict(pro_img)
+        class_result = np.argmax(class_pred, axis = -1)
+        class_prob = class_pred[0,class_result]
         
-        if result == 4:
-            stage_res = stage_check(result,pro_img)
-        else:
-            stage_res = 'Stage Classification Not Applicable'
+        if class_result == 1:
+            result,res_prob, stage_res = correct_predict(pro_img)
             
-        result = convert_result(result)
-    return render_template('index.html', result = result, stg_res = stage_res)
+        elif class_result == 0:
+            if class_prob < 1.0:
+                result,res_prob, stage_res = correct_predict(pro_img)
+                
+            elif class_prob == 1.0:
+                result = 'Upload Valid Image'
+                res_prob = 'Not Applicable'
+                stage_res = 'Not Applicable'
+                        
+    return render_template('index.html', result = result, res_prob = res_prob, stg_res = stage_res)
 
 # Function To Load Main Page
 @app.route('/')
