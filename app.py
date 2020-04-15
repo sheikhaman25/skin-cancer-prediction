@@ -12,7 +12,8 @@ app = Flask(__name__)
 # Path To The Model
 one_class_model_path = 'mnet_adam.h5'
 detect_model_path = 'skin_mnet_adam.h5'
-
+stage_model_path = 'stages_mnet_adam_acc.h5'
+    
 # Defining Top 2 & Top 3 Accuracy
 def top_2_accuracy(y_true, y_pred):
     return top_k_categorical_accuracy(y_true, y_pred, k = 2)
@@ -30,6 +31,8 @@ one_class_model._make_predict_function()
 skin_model = model_load(detect_model_path, custom_objects =  custom_objects)
 skin_model._make_predict_function()
 
+stage_model = model_load(stage_model_path)
+stage_model._make_predict_function()
 print('Model Loaded. Ready To Go!')
 
 # Function To Preprocess Image
@@ -59,9 +62,6 @@ def convert_result(inp):
 
 # Function To Predict Severity
 def stage_check(inp, pro_img):
-    stage_model_path = 'stages_mnet_adam_acc.h5'
-    stage_model = model_load(stage_model_path)
-    stage_model._make_predict_function()
     stage_pred = stage_model.predict(pro_img)
     stage_res = np.argmax(stage_pred, axis = -1)
     if stage_res == 0:
