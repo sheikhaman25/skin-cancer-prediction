@@ -12,7 +12,7 @@ app = Flask(__name__)
 # Path To The Model
 one_class_model_path = 'mnet_adam.h5'
 detect_model_path = 'skin_mnet_adam.h5'
-stage_model_path = 'stages_mnet_adam.h5'
+stage_model_path = 'stages_mnet_adam_acc.h5'
 
 # Defining Top 2 & Top 3 Accuracy
 def top_2_accuracy(y_true, y_pred):
