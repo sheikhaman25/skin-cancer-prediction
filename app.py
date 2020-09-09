@@ -12,8 +12,8 @@ app = Flask(__name__)
 # Path To The Model
 one_class_model_path = 'mnet_adam.h5'
 detect_model_path = 'skin_mnet_adam.h5'
-stage_model_path = 'stages_mnet_adam_acc.h5'
-    
+stage_model_path = 'stages_mnet_adam.h5'
+
 # Defining Top 2 & Top 3 Accuracy
 def top_2_accuracy(y_true, y_pred):
     return top_k_categorical_accuracy(y_true, y_pred, k = 2)
@@ -28,13 +28,12 @@ custom_objects = {'top_2_accuracy': top_2_accuracy, 'top_3_accuracy': top_3_accu
 one_class_model = model_load(one_class_model_path)
 one_class_model._make_predict_function()
 
-def load_skin_model():
-    skin_model = model_load(detect_model_path, custom_objects =  custom_objects)
-    skin_model._make_predict_function()
+skin_model = model_load(detect_model_path, custom_objects =  custom_objects)
+skin_model._make_predict_function()
 
-def load_stage_model():
-    stage_model = model_load(stage_model_path)
-    stage_model._make_predict_function()
+stage_model = model_load(stage_model_path)
+stage_model._make_predict_function()
+
 print('Model Loaded. Ready To Go!')
 
 # Function To Preprocess Image
@@ -84,7 +83,6 @@ def correct_predict(pro_img):
     res_prob = predict[0,result]
         
     if result == 4:
-        load_stage_model()
         stage_res = stage_check(result,pro_img)
     else:
         stage_res = 'Stage Classification Not Applicable'
@@ -108,7 +106,6 @@ def predict():
             
         elif class_result == 0:
             if class_prob < 1.0:
-                load_skin_model()
                 result,res_prob, stage_res = correct_predict(pro_img)
                 
             elif class_prob == 1.0:
